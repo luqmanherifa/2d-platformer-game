@@ -136,7 +136,14 @@ export default function App() {
       const bottomBlockWidth = 44;
       const bottomBlockHeight = 20;
 
-      const groundLevel = height - topBlockHeight - bottomBlockHeight * 4;
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(
+        navigator.userAgent,
+      );
+
+      const bottomLayers = isMobileDevice ? 1 : 4;
+
+      const groundLevel =
+        height - topBlockHeight - bottomBlockHeight * bottomLayers;
       const blocksNeeded = Math.ceil(width / topBlockWidth) + 1;
 
       for (let i = 0; i < blocksNeeded; i++) {
@@ -148,7 +155,7 @@ export default function App() {
         topBlock.refreshBody();
       }
 
-      for (let layer = 0; layer < 4; layer++) {
+      for (let layer = 0; layer < bottomLayers; layer++) {
         for (let i = 0; i < blocksNeeded; i++) {
           const bottomBlock = platforms.create(
             i * bottomBlockWidth + bottomBlockWidth / 2,
