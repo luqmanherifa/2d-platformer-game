@@ -76,8 +76,11 @@ export class GameScene extends Phaser.Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
+    const worldWidth = width * GAME_SETTINGS.WORLD_WIDTH_MULTIPLIER;
+    this.physics.world.setBounds(0, 0, worldWidth, height);
+
     const bgSize = SPRITE_SIZES.BACKGROUND;
-    const tilesX = Math.ceil(width / bgSize) + 1;
+    const tilesX = Math.ceil(worldWidth / bgSize) + 1;
     const tilesY = Math.ceil(height / bgSize) + 1;
 
     for (let y = 0; y < tilesY; y++) {
@@ -103,7 +106,7 @@ export class GameScene extends Phaser.Scene {
 
     const groundLevel =
       height - topBlockHeight - bottomBlockHeight * bottomLayers;
-    const blocksNeeded = Math.ceil(width / topBlockWidth) + 1;
+    const blocksNeeded = Math.ceil(worldWidth / topBlockWidth) + 1;
 
     for (let i = 0; i < blocksNeeded; i++) {
       const topBlock = platforms.create(
@@ -141,20 +144,30 @@ export class GameScene extends Phaser.Scene {
     });
 
     const boxScale = GAME_SETTINGS.BOX_SCALE;
-    const boxMarginFromWall = GAME_SETTINGS.BOX_MARGIN_FROM_WALL;
 
-    const box1 = this.boxes.create(
-      width - boxMarginFromWall,
-      groundLevel - 30,
-      "box_idle",
-    );
+    const box1 = this.boxes.create(width * 0.3, groundLevel - 30, "box_idle");
     box1.setScale(boxScale);
     box1.refreshBody();
+
+    const box2 = this.boxes.create(width * 1.0, groundLevel - 30, "box_idle");
+    box2.setScale(boxScale);
+    box2.refreshBody();
+
+    const box3 = this.boxes.create(width * 1.5, groundLevel - 30, "box_idle");
+    box3.setScale(boxScale);
+    box3.refreshBody();
+
+    const box4 = this.boxes.create(width * 1.8, groundLevel - 30, "box_idle");
+    box4.setScale(boxScale);
+    box4.refreshBody();
 
     this.player = this.physics.add.sprite(100, 100, "player_idle");
     this.player.setBounce(0.1);
     this.player.setCollideWorldBounds(true);
     this.player.setScale(GAME_SETTINGS.PLAYER_SCALE);
+
+    this.cameras.main.setBounds(0, 0, worldWidth, height);
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
     this.anims.create({
       key: "banana_spin",
@@ -249,14 +262,20 @@ export class GameScene extends Phaser.Scene {
       this.player.setTint(0xff0000);
 
       const gameOverText = this.add
-        .text(width / 2, height / 2, "GAME OVER\n\nPress R to Restart", {
-          fontSize: "32px",
-          fill: "#fff",
-          stroke: "#000",
-          strokeThickness: 4,
-          align: "center",
-        })
-        .setOrigin(0.5);
+        .text(
+          this.player.x,
+          this.player.y - 100,
+          "GAME OVER\n\nPress R to Restart",
+          {
+            fontSize: "32px",
+            fill: "#fff",
+            stroke: "#000",
+            strokeThickness: 4,
+            align: "center",
+          },
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(1);
 
       const restartKey = this.input.keyboard.addKey("R");
       restartKey.on("down", () => {
