@@ -13,6 +13,7 @@ export default function App() {
     let canAttack = true;
     let currentAmmo = 5;
     let maxAmmo = 5;
+    let isGameOver = false;
 
     const config = {
       type: Phaser.AUTO,
@@ -65,6 +66,12 @@ export default function App() {
       this.load.spritesheet(
         "player_fall",
         "/assets/Main Characters/Virtual Guy/Fall (32x32).png",
+        { frameWidth: 32, frameHeight: 32 },
+      );
+
+      this.load.spritesheet(
+        "player_hit",
+        "/assets/Main Characters/Virtual Guy/Hit (32x32).png",
         { frameWidth: 32, frameHeight: 32 },
       );
 
@@ -181,6 +188,16 @@ export default function App() {
       });
 
       this.anims.create({
+        key: "hit",
+        frames: this.anims.generateFrameNumbers("player_hit", {
+          start: 0,
+          end: 6,
+        }),
+        frameRate: 10,
+        repeat: 0,
+      });
+
+      this.anims.create({
         key: "enemy_run",
         frames: this.anims.generateFrameNumbers("enemy_run", {
           start: 0,
@@ -209,7 +226,28 @@ export default function App() {
       this.physics.add.collider(enemies, platforms);
 
       this.physics.add.overlap(player, enemies, () => {
-        console.log("Player hit!");
+        if (isGameOver) return;
+
+        isGameOver = true;
+        this.physics.pause();
+
+        player.anims.play("hit", true);
+        player.setTint(0xff0000);
+
+        const gameOverText = this.add
+          .text(width / 2, height / 2, "GAME OVER\n\nPress R to Restart", {
+            fontSize: "48px",
+            fill: "#fff",
+            stroke: "#000",
+            strokeThickness: 6,
+            align: "center",
+          })
+          .setOrigin(0.5);
+
+        const restartKey = this.input.keyboard.addKey("R");
+        restartKey.on("down", () => {
+          location.reload();
+        });
       });
 
       this.physics.add.overlap(bullets, enemies, (bullet, enemy) => {
@@ -232,6 +270,8 @@ export default function App() {
     }
 
     function update() {
+      if (isGameOver) return;
+
       const speed = 220;
 
       if (keys.left.isDown) {
