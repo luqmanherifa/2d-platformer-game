@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 
 export default function App() {
   const gameRef = useRef(null);
+  const [ammo, setAmmo] = useState(5);
 
   useEffect(() => {
     let player;
@@ -10,6 +11,8 @@ export default function App() {
     let enemies;
     let bullets;
     let canAttack = true;
+    let currentAmmo = 5;
+    let maxAmmo = 5;
 
     const config = {
       type: Phaser.AUTO,
@@ -263,8 +266,10 @@ export default function App() {
         }
       });
 
-      if (keys.attack.isDown && canAttack) {
+      if (keys.attack.isDown && canAttack && currentAmmo > 0) {
         canAttack = false;
+        currentAmmo--;
+        setAmmo(currentAmmo);
 
         const bullet = bullets.create(player.x, player.y, "banana");
         bullet.setScale(1.5);
@@ -278,8 +283,18 @@ export default function App() {
           if (bullet && bullet.active) {
             bullet.destroy();
           }
-          canAttack = true;
         }, 2000);
+
+        setTimeout(() => {
+          canAttack = true;
+        }, 100);
+
+        if (currentAmmo < maxAmmo) {
+          setTimeout(() => {
+            currentAmmo++;
+            setAmmo(currentAmmo);
+          }, 2000);
+        }
       }
     }
 
@@ -297,19 +312,50 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen bg-black relative overflow-hidden">
-      <div className="absolute top-4 left-4 z-10 bg-white/90 rounded-lg p-3 shadow-lg">
-        <h1 className="text-xl font-bold mb-2">2D Platformer</h1>
+      <div className="absolute top-6 left-6 z-10 select-none">
+        <h1
+          className="text-xl font-bold text-white mb-3"
+          style={{ textShadow: "2px 2px 3px rgba(0,0,0,0.5)" }}
+        >
+          2D Platformer
+        </h1>
 
-        <div className="text-sm space-y-1">
-          <p>
-            <strong>A / D</strong> - Move
-          </p>
-          <p>
-            <strong>W</strong> - Jump
-          </p>
-          <p>
-            <strong>F</strong> - Attack
-          </p>
+        <div
+          className="space-y-2 text-white text-xl"
+          style={{ textShadow: "2px 2px 3px rgba(0,0,0,0.5)" }}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {[...Array(5)].map((_, i) => (
+                <span
+                  key={i}
+                  className="text-2xl"
+                  style={{
+                    opacity: i < ammo ? 1 : 0.3,
+                    filter: i < ammo ? "none" : "grayscale(100%)",
+                  }}
+                >
+                  🍌
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1 font-semibold">
+            <p>
+              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">A</kbd>{" "}
+              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">D</kbd>{" "}
+              Move
+            </p>
+            <p>
+              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">W</kbd>{" "}
+              Jump
+            </p>
+            <p>
+              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">F</kbd>{" "}
+              Attack
+            </p>
+          </div>
         </div>
       </div>
 
