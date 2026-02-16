@@ -35,9 +35,11 @@ export default function App() {
     gameRef.current = game;
 
     function preload() {
-      this.load.image("background", "/assets/Background/Blue.png");
+      this.load.image("background", "/assets/Background/Brown.png");
 
-      this.load.image("terrain", "/assets/Terrain/Terrain.png");
+      this.load.image("terrain_top", "/assets/Terrain/Terrain-2.png");
+
+      this.load.image("terrain_bottom", "/assets/Terrain/Terrain-3.png");
 
       this.load.spritesheet(
         "player_idle",
@@ -91,18 +93,34 @@ export default function App() {
 
       const platforms = this.physics.add.staticGroup();
 
-      const blockSize = 48;
-      const groundLevel = height - blockSize * 3;
-      const blocksNeeded = Math.ceil(width / blockSize) + 1;
+      const topBlockWidth = 44;
+      const topBlockHeight = 46;
+      const bottomBlockWidth = 44;
+      const bottomBlockHeight = 20;
 
-      for (let layer = 0; layer < 3; layer++) {
+      const groundLevel = height - topBlockHeight - bottomBlockHeight * 4;
+      const blocksNeeded = Math.ceil(width / topBlockWidth) + 1;
+
+      for (let i = 0; i < blocksNeeded; i++) {
+        const topBlock = platforms.create(
+          i * topBlockWidth + topBlockWidth / 2,
+          groundLevel + topBlockHeight / 2,
+          "terrain_top",
+        );
+        topBlock.refreshBody();
+      }
+
+      for (let layer = 0; layer < 4; layer++) {
         for (let i = 0; i < blocksNeeded; i++) {
-          const block = platforms.create(
-            i * blockSize + blockSize / 2,
-            groundLevel + layer * blockSize + blockSize / 2,
-            "terrain",
+          const bottomBlock = platforms.create(
+            i * bottomBlockWidth + bottomBlockWidth / 2,
+            groundLevel +
+              topBlockHeight +
+              layer * bottomBlockHeight +
+              bottomBlockHeight / 2,
+            "terrain_bottom",
           );
-          block.refreshBody();
+          bottomBlock.refreshBody();
         }
       }
 
