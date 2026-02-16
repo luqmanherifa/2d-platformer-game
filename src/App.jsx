@@ -1,9 +1,30 @@
 import { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
+import {
+  Gamepad2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  Banana,
+  RotateCcw,
+} from "lucide-react";
 
 export default function App() {
   const gameRef = useRef(null);
   const [ammo, setAmmo] = useState(5);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileControls, setShowMobileControls] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      setIsMobile(mobile);
+      setShowMobileControls(mobile);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     let player;
@@ -14,6 +35,12 @@ export default function App() {
     let currentAmmo = 5;
     let maxAmmo = 5;
     let isGameOver = false;
+    let mobileControls = {
+      left: false,
+      right: false,
+      jump: false,
+      attack: false,
+    };
 
     const config = {
       type: Phaser.AUTO,
@@ -37,6 +64,7 @@ export default function App() {
 
     const game = new Phaser.Game(config);
     gameRef.current = game;
+    game.mobileControls = mobileControls;
 
     function preload() {
       this.load.image("background", "/assets/Background/Brown.png");
@@ -134,7 +162,7 @@ export default function App() {
         }
       }
 
-      player = this.physics.add.sprite(100, 300, "player_idle");
+      player = this.physics.add.sprite(100, 100, "player_idle");
       player.setBounce(0.1);
       player.setCollideWorldBounds(true);
       player.setScale(2);
@@ -236,10 +264,10 @@ export default function App() {
 
         const gameOverText = this.add
           .text(width / 2, height / 2, "GAME OVER\n\nPress R to Restart", {
-            fontSize: "48px",
+            fontSize: "32px",
             fill: "#fff",
             stroke: "#000",
-            strokeThickness: 6,
+            strokeThickness: 4,
             align: "center",
           })
           .setOrigin(0.5);
@@ -274,13 +302,13 @@ export default function App() {
 
       const speed = 220;
 
-      if (keys.left.isDown) {
+      if (keys.left.isDown || mobileControls.left) {
         player.setVelocityX(-speed);
         player.setFlipX(true);
         if (player.body.touching.down) {
           player.anims.play("run", true);
         }
-      } else if (keys.right.isDown) {
+      } else if (keys.right.isDown || mobileControls.right) {
         player.setVelocityX(speed);
         player.setFlipX(false);
         if (player.body.touching.down) {
@@ -293,7 +321,10 @@ export default function App() {
         }
       }
 
-      if (keys.up.isDown && player.body.touching.down) {
+      if (
+        (keys.up.isDown || mobileControls.jump) &&
+        player.body.touching.down
+      ) {
         player.setVelocityY(-450);
       }
 
@@ -315,7 +346,11 @@ export default function App() {
         }
       });
 
-      if (keys.attack.isDown && canAttack && currentAmmo > 0) {
+      if (
+        (keys.attack.isDown || mobileControls.attack) &&
+        canAttack &&
+        currentAmmo > 0
+      ) {
         canAttack = false;
         currentAmmo--;
         setAmmo(currentAmmo);
@@ -361,6 +396,19 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen bg-black relative overflow-hidden">
+      {isMobile && window.innerWidth < window.innerHeight && (
+        <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
+          <div
+            className="text-white text-center"
+            style={{ textShadow: "2px 2px 3px rgba(0,0,0,0.5)" }}
+          >
+            <div className="text-6xl mb-4">📱</div>
+            <div className="text-2xl font-bold">Please rotate your device</div>
+            <div className="text-lg mt-2">to landscape mode</div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute top-6 left-6 z-10 select-none">
         <h1
           className="text-xl font-bold text-white mb-3"
@@ -390,23 +438,198 @@ export default function App() {
             </div>
           </div>
 
-          <div className="space-y-1 font-semibold">
-            <p>
-              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">A</kbd>{" "}
-              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">D</kbd>{" "}
-              Move
-            </p>
-            <p>
-              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">W</kbd>{" "}
-              Jump
-            </p>
-            <p>
-              <kbd className="px-2 py-1 bg-white/20 rounded text-sm">F</kbd>{" "}
-              Attack
-            </p>
-          </div>
+          {!isMobile && (
+            <div className="space-y-1 font-semibold">
+              <p>
+                <kbd className="px-2 py-1 bg-white/20 rounded text-sm">A</kbd>{" "}
+                <kbd className="px-2 py-1 bg-white/20 rounded text-sm">D</kbd>{" "}
+                Move
+              </p>
+              <p>
+                <kbd className="px-2 py-1 bg-white/20 rounded text-sm">W</kbd>{" "}
+                Jump
+              </p>
+              <p>
+                <kbd className="px-2 py-1 bg-white/20 rounded text-sm">F</kbd>{" "}
+                Attack
+              </p>
+            </div>
+          )}
         </div>
       </div>
+
+      <div className="absolute top-6 right-6 z-10 flex gap-3">
+        <button
+          onClick={() => location.reload()}
+          className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-semibold text-sm transition-colors flex items-center gap-2"
+          style={{ textShadow: "2px 2px 3px rgba(0,0,0,0.5)" }}
+        >
+          <RotateCcw size={18} />
+          Restart
+        </button>
+        <button
+          onClick={() => setShowMobileControls(!showMobileControls)}
+          className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-semibold text-sm transition-colors flex items-center gap-2"
+          style={{ textShadow: "2px 2px 3px rgba(0,0,0,0.5)" }}
+        >
+          <Gamepad2 size={18} />
+          {showMobileControls ? "Hide Controls" : "Show Controls"}
+        </button>
+      </div>
+
+      {showMobileControls && (
+        <>
+          <div className="absolute bottom-6 left-6 z-10 flex gap-3">
+            <button
+              className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center active:bg-white/40"
+              style={{ touchAction: "none" }}
+              onTouchStart={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.left = true;
+                }
+              }}
+              onTouchEnd={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.left = false;
+                }
+              }}
+              onMouseDown={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.left = true;
+                }
+              }}
+              onMouseUp={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.left = false;
+                }
+              }}
+              onMouseLeave={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.left = false;
+                }
+              }}
+            >
+              <ChevronLeft size={32} color="white" />
+            </button>
+            <button
+              className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center active:bg-white/40"
+              style={{ touchAction: "none" }}
+              onTouchStart={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.right = true;
+                }
+              }}
+              onTouchEnd={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.right = false;
+                }
+              }}
+              onMouseDown={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.right = true;
+                }
+              }}
+              onMouseUp={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.right = false;
+                }
+              }}
+              onMouseLeave={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.right = false;
+                }
+              }}
+            >
+              <ChevronRight size={32} color="white" />
+            </button>
+          </div>
+
+          <div className="absolute bottom-6 right-6 z-10 flex gap-3">
+            <button
+              className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center active:bg-white/40"
+              style={{ touchAction: "none" }}
+              onTouchStart={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.jump = true;
+                }
+              }}
+              onTouchEnd={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.jump = false;
+                }
+              }}
+              onMouseDown={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.jump = true;
+                }
+              }}
+              onMouseUp={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.jump = false;
+                }
+              }}
+              onMouseLeave={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.jump = false;
+                }
+              }}
+            >
+              <ArrowUp size={28} color="white" />
+            </button>
+            <button
+              className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center active:bg-white/40"
+              style={{ touchAction: "none" }}
+              onTouchStart={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.attack = true;
+                }
+              }}
+              onTouchEnd={() => {
+                const game = gameRef.current;
+                if (game?.scene?.scenes[0]) {
+                  game.scene.scenes[0].sys.game.mobileControls.attack = false;
+                }
+              }}
+              onMouseDown={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.attack = true;
+                }
+              }}
+              onMouseUp={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.attack = false;
+                }
+              }}
+              onMouseLeave={() => {
+                const game = gameRef.current;
+                if (game?.mobileControls) {
+                  game.mobileControls.attack = false;
+                }
+              }}
+            >
+              <Banana size={24} color="white" />
+            </button>
+          </div>
+        </>
+      )}
 
       <div id="game-container" className="w-full h-full" />
     </div>
