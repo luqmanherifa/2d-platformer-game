@@ -17,6 +17,7 @@ export default function App() {
   const [showMobileControls, setShowMobileControls] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstall, setShowInstall] = useState(false);
+  const [gameKey, setGameKey] = useState(0);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -51,6 +52,11 @@ export default function App() {
       setDeferredPrompt(null);
       setShowInstall(false);
     }
+  };
+
+  const handleRestart = () => {
+    setAmmo(5);
+    setGameKey((prev) => prev + 1);
   };
 
   useEffect(() => {
@@ -308,7 +314,7 @@ export default function App() {
 
         const restartKey = this.input.keyboard.addKey("R");
         restartKey.on("down", () => {
-          location.reload();
+          handleRestart();
         });
       });
 
@@ -416,17 +422,17 @@ export default function App() {
       }
     }
 
-    const handleResize = () => {
+    const handleResizeGame = () => {
       game.scale.resize(window.innerWidth, window.innerHeight);
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResizeGame);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", handleResizeGame);
       game.destroy(true);
     };
-  }, []);
+  }, [gameKey]);
 
   return (
     <div className="w-screen h-screen bg-black relative overflow-hidden">
@@ -507,7 +513,7 @@ export default function App() {
 
       <div className="absolute top-6 right-6 z-10 flex gap-3">
         <button
-          onClick={() => location.reload()}
+          onClick={handleRestart}
           className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-semibold text-sm transition-colors flex items-center gap-2"
           style={{ textShadow: "2px 2px 3px rgba(0,0,0,0.5)" }}
         >
