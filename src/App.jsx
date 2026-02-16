@@ -15,7 +15,7 @@ export default function App() {
       width: window.innerWidth,
       height: window.innerHeight,
       parent: "game-container",
-      backgroundColor: "#87CEEB",
+      transparent: true,
       physics: {
         default: "arcade",
         arcade: {
@@ -34,6 +34,8 @@ export default function App() {
     gameRef.current = game;
 
     function preload() {
+      this.load.image("background", "/assets/Background/Brown.png");
+
       this.load.spritesheet("terrain", "/assets/Terrain/Terrain (16x16).png", {
         frameWidth: 16,
         frameHeight: 16,
@@ -73,6 +75,16 @@ export default function App() {
     function create() {
       const width = this.cameras.main.width;
       const height = this.cameras.main.height;
+
+      const bgSize = 64;
+      const tilesX = Math.ceil(width / bgSize) + 1;
+      const tilesY = Math.ceil(height / bgSize) + 1;
+
+      for (let y = 0; y < tilesY; y++) {
+        for (let x = 0; x < tilesX; x++) {
+          this.add.image(x * bgSize, y * bgSize, "background").setOrigin(0, 0);
+        }
+      }
 
       const platforms = this.physics.add.staticGroup();
 
@@ -246,7 +258,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="w-screen h-screen bg-sky-400 relative overflow-hidden">
+    <div className="w-screen h-screen bg-black relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10 bg-white/90 rounded-lg p-3 shadow-lg">
         <h1 className="text-xl font-bold mb-2">2D Platformer</h1>
 
