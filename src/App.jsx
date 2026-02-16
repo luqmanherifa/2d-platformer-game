@@ -63,10 +63,11 @@ export default function App() {
         { frameWidth: 32, frameHeight: 32 },
       );
 
-      this.load.spritesheet("enemy", "/assets/Terrain/Terrain (16x16).png", {
-        frameWidth: 16,
-        frameHeight: 16,
-      });
+      this.load.spritesheet(
+        "enemy_run",
+        "/assets/Main Characters/Mask Dude/Run (32x32).png",
+        { frameWidth: 32, frameHeight: 32 },
+      );
     }
 
     function create() {
@@ -91,10 +92,11 @@ export default function App() {
       player.setScale(2);
 
       enemies = this.physics.add.group();
-      const enemy = enemies.create(600, 300, "enemy", 22);
+      const enemy = enemies.create(600, 100, "enemy_run");
       enemy.setCollideWorldBounds(true);
-      enemy.setVelocityX(-100);
+      enemy.setVelocityX(-150);
       enemy.setScale(2);
+      enemy.setFlipX(true);
 
       this.physics.add.collider(player, platforms);
       this.physics.add.collider(enemies, platforms);
@@ -141,7 +143,18 @@ export default function App() {
         frameRate: 10,
       });
 
+      this.anims.create({
+        key: "enemy_run",
+        frames: this.anims.generateFrameNumbers("enemy_run", {
+          start: 0,
+          end: 11,
+        }),
+        frameRate: 12,
+        repeat: -1,
+      });
+
       player.anims.play("idle", true);
+      enemy.anims.play("enemy_run", true);
 
       keys = this.input.keyboard.addKeys({
         up: "W",
@@ -184,6 +197,16 @@ export default function App() {
           player.anims.play("fall", true);
         }
       }
+
+      enemies.children.entries.forEach((enemy) => {
+        if (enemy.body.blocked.left) {
+          enemy.setVelocityX(150);
+          enemy.setFlipX(false);
+        } else if (enemy.body.blocked.right) {
+          enemy.setVelocityX(-150);
+          enemy.setFlipX(true);
+        }
+      });
 
       if (keys.attack.isDown && canAttack) {
         canAttack = false;
