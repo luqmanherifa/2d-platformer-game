@@ -5,6 +5,7 @@ import {
   GAME_SETTINGS,
   MOBILE_SETTINGS,
 } from "./constants";
+import { MapLoader } from "./utils/MapLoader";
 
 export class GameScene extends Phaser.Scene {
   constructor(setAmmo, handleRestart, mobileControls) {
@@ -12,6 +13,7 @@ export class GameScene extends Phaser.Scene {
     this.setAmmo = setAmmo;
     this.handleRestart = handleRestart;
     this.mobileControls = mobileControls;
+    this.mapLoader = new MapLoader(this);
   }
 
   init() {
@@ -24,9 +26,12 @@ export class GameScene extends Phaser.Scene {
     this.currentAmmo = GAME_SETTINGS.MAX_AMMO;
     this.maxAmmo = GAME_SETTINGS.MAX_AMMO;
     this.isGameOver = false;
+    this.mapData = null;
   }
 
   preload() {
+    this.load.json("map", "/maps/level1.json");
+
     this.load.image("background", ASSETS.BACKGROUND);
     this.load.image("terrain_top", ASSETS.TERRAIN_TOP);
     this.load.image("terrain_bottom", ASSETS.TERRAIN_BOTTOM);
@@ -73,10 +78,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    this.mapData = this.cache.json.get("map");
+    this.mapLoader.mapData = this.mapData;
+
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
 
-    const worldWidth = width * GAME_SETTINGS.WORLD_WIDTH_MULTIPLIER;
+    const worldWidth = this.mapLoader.getWorldWidth(width);
     this.physics.world.setBounds(0, 0, worldWidth, height);
 
     const bgSize = SPRITE_SIZES.BACKGROUND;
@@ -89,6 +97,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    const groundConfig = this.mapLoader.getGroundConfig();
     const platforms = this.physics.add.staticGroup();
 
     const topBlockWidth = SPRITE_SIZES.TERRAIN_TOP.width;
@@ -100,9 +109,11 @@ export class GameScene extends Phaser.Scene {
       navigator.userAgent,
     );
 
-    const bottomLayers = isMobileDevice
-      ? MOBILE_SETTINGS.BOTTOM_LAYERS_MOBILE
-      : MOBILE_SETTINGS.BOTTOM_LAYERS_DESKTOP;
+    const bottomLayers =
+      groundConfig.bottomLayers ||
+      (isMobileDevice
+        ? MOBILE_SETTINGS.BOTTOM_LAYERS_MOBILE
+        : MOBILE_SETTINGS.BOTTOM_LAYERS_DESKTOP);
 
     const groundLevel =
       height - topBlockHeight - bottomBlockHeight * bottomLayers;
@@ -132,6 +143,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.boxes = this.physics.add.staticGroup();
+    const boxPositions = this.mapLoader.getBoxes(width, groundLevel);
 
     this.anims.create({
       key: "box_idle",
@@ -143,25 +155,18 @@ export class GameScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    const boxScale = GAME_SETTINGS.BOX_SCALE;
+    boxPositions.forEach((boxPos) => {
+      const box = this.boxes.create(boxPos.x, boxPos.y, "box_idle");
+      box.setScale(GAME_SETTINGS.BOX_SCALE);
+      box.refreshBody();
+    });
 
-    const box1 = this.boxes.create(width * 0.3, groundLevel - 30, "box_idle");
-    box1.setScale(boxScale);
-    box1.refreshBody();
-
-    const box2 = this.boxes.create(width * 1.0, groundLevel - 30, "box_idle");
-    box2.setScale(boxScale);
-    box2.refreshBody();
-
-    const box3 = this.boxes.create(width * 1.5, groundLevel - 30, "box_idle");
-    box3.setScale(boxScale);
-    box3.refreshBody();
-
-    const box4 = this.boxes.create(width * 1.8, groundLevel - 30, "box_idle");
-    box4.setScale(boxScale);
-    box4.refreshBody();
-
-    this.player = this.physics.add.sprite(100, 100, "player_idle");
+    const playerSpawn = this.mapLoader.getPlayerSpawn();
+    this.player = this.physics.add.sprite(
+      playerSpawn.x,
+      playerSpawn.y,
+      "player_idle",
+    );
     this.player.setBounce(0.1);
     this.player.setCollideWorldBounds(true);
     this.player.setScale(GAME_SETTINGS.PLAYER_SCALE);
@@ -238,14 +243,16 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.enemies = this.physics.add.group();
+    const enemySpawns = this.mapLoader.getEnemies(width);
 
-    this.spawnEnemy();
+    enemySpawns.forEach((enemyData) => {
+      this.spawnEnemyAt(enemyData.x, enemyData.y, enemyData.direction);
+    });
 
     this.bullets = this.physics.add.group();
 
     this.physics.add.collider(this.player, platforms);
     this.physics.add.collider(this.enemies, platforms);
-
     this.physics.add.collider(this.player, this.boxes);
     this.physics.add.collider(this.enemies, this.boxes);
     this.physics.add.collider(this.bullets, this.boxes, (bullet) => {
@@ -288,7 +295,16 @@ export class GameScene extends Phaser.Scene {
       enemy.destroy();
 
       this.time.delayedCall(GAME_SETTINGS.ENEMY_RESPAWN_TIME, () => {
-        this.spawnEnemy();
+        const enemySpawns = this.mapLoader.getEnemies(width);
+        if (enemySpawns.length > 0) {
+          const randomSpawn =
+            enemySpawns[Math.floor(Math.random() * enemySpawns.length)];
+          this.spawnEnemyAt(
+            randomSpawn.x,
+            randomSpawn.y,
+            randomSpawn.direction,
+          );
+        }
       });
     });
 
@@ -302,13 +318,16 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  spawnEnemy() {
-    const width = this.cameras.main.width;
-    const enemy = this.enemies.create(width - 150, 100, "enemy_run");
+  spawnEnemyAt(x, y, direction) {
+    const enemy = this.enemies.create(x, y, "enemy_run");
     enemy.setCollideWorldBounds(true);
-    enemy.setVelocityX(-GAME_SETTINGS.ENEMY_SPEED);
+    const speed =
+      direction === "left"
+        ? -GAME_SETTINGS.ENEMY_SPEED
+        : GAME_SETTINGS.ENEMY_SPEED;
+    enemy.setVelocityX(speed);
     enemy.setScale(GAME_SETTINGS.ENEMY_SCALE);
-    enemy.setFlipX(true);
+    enemy.setFlipX(direction === "left");
     enemy.anims.play("enemy_run", true);
   }
 

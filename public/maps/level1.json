@@ -1,0 +1,21 @@
+{
+  "worldWidth": 2,
+  "player": {
+    "x": 100,
+    "y": 100
+  },
+  "ground": {
+    "type": "auto",
+    "bottomLayers": 4
+  },
+  "boxes": [
+    { "x": 300, "y": "auto" },
+    { "x": 800, "y": "auto" },
+    { "x": 1200, "y": "auto" },
+    { "x": 1600, "y": "auto" }
+  ],
+  "enemies": [
+    { "x": 1000, "y": 100, "direction": "left" },
+    { "x": 1500, "y": 100, "direction": "left" }
+  ]
+}
